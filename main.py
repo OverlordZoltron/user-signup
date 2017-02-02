@@ -33,12 +33,6 @@ page_header = """
     <h1>User Signup</h1>
 """
 
-# html boilerplate for the bottom of every page
-page_footer = """
-</body>
-</html>
-"""
-
 # User signup form
 signup_form = """
     <form action="/" method="post">
@@ -84,6 +78,12 @@ signup_form = """
     </form>
 """
 
+# html boilerplate for the bottom of every page
+page_footer = """
+</body>
+</html>
+"""
+
 
 # putting the page together
 content = page_header + signup_form + page_footer
@@ -110,6 +110,7 @@ def is_valid_email(email):
 
 
 class MainHandler(webapp2.RequestHandler):
+    # create the form, set error variables to blank for form creation
     def write_form(self, username_error="", password_error="", passwordConfirmed_error="", email_error="", username="",
                    email=""):
         self.response.out.write(content % {"username_error": username_error,
@@ -122,6 +123,60 @@ class MainHandler(webapp2.RequestHandler):
     def get(self):
         self.write_form()
 
+    def post(self):
+        # get what our variables currently are
+        # should add an html escape so someone cant input html
+        username = self.request.get("username")
+        password = self.request.get("password")
+        passwordConfirmed = self.request.get("passwordConfirmed")
+        email = self.request.get("email")
+
+        # set error messages to blank
+        username_error = ""
+        password_error = ""
+        passwordConfirmed_error = ""
+        email_error = ""
+
+        # set error to false
+        error = False
+
+        if is_valid_username(username) == None:
+            username_error = "Username is invalid"
+            error = True
+
+        if not password:
+            if not passwordConfirmed:
+                passwordConfirmed_error = "Password cannot be left blank"
+            password_error = "Password cannot be left blank"
+            error = True
+        elif is_valid_password(password) == None:
+            password_error = "Password is invalid"
+            error = True
+
+        if password != passwordConfirmed:
+            passwordConfirmed_error = "Passwords do not match"
+            error = True
+
+        if email and is_valid_email(email) == None:
+            email_error = "Email is invalid"
+            error = True
+
+        # if error is TRUE give error
+        # else send to welcome page with username
+        if error:
+            self.write_form(username_error, password_error, passwordConfirmed_error, email_error, username, email)
+        else:
+            self.redirect("/welcome?name=" + username)
+
+
+class WelcomeHandler(webapp2.RequestHandler):
+    def get(self):
+        username = self.request.get("name")
+        welcome_message = "<h1>Welcome, " + username + "!</h1>"
+        welcome_content = page_header + welcome_message + page_footer
+        self.response.out.write(welcome_content)
+
 app = webapp2.WSGIApplication([
-    ('/', MainHandler)
+    ('/', MainHandler),
+    ('/welcome', WelcomeHandler)
 ], debug=True)
